@@ -20,6 +20,7 @@
 |severe_audio_issues | string(yes/no) | Engineered feature from data: yes if multiple audio metrics are flagged. Indicates likelihood of quality issues that may have disrupted patient care |
 |video_issues | string(yes/no) | similar to audio issues |
 |severe_video_issues | string(yes/no) | similar to severe_audio_issues |
+| disconnections  | int | engineered feature: each user had a leave reason from the API - this feature tally's the number of events in a session in which "leave_reason" (now dropped) was "disconnected" |
 
 ## Numbered columns - participants 
 - for each user in a zoom meeting, the following participant data is recorded, ending with _n to designate that it will be a numbered entry
