@@ -1,8 +1,8 @@
 # Data Dictionary - Zoom API data
 
-- there are several kinds of columns in this data, and they are numerous. The precise number is flexible, and depends on the number of participants in a given virtual visit. There are two kinds of columns, static (the same for all entries), and numbered (repeated for each participant). For numbered columns, the suffix "_n" designates the number of the user, where user 0 is the host, and user 1 is generally the patient. However, if a user signs in or out, gets disconnected, changes devices, etc, they are designated as a completely different number. In addition, interpreters, advocates, etc, may also be present. Please be sure to analyze participant data in these cases!
+- there are several kinds of columns in this data, and they are numerous. The precise number is flexible, and depends on the number of participants in a given virtual visit. There are two kinds of columns, constant (a constant number across every row), and numbered (repeated for each participant). For numbered columns, the suffix "_n" designates the number of the user, where user 0 is the host, and user 1 is generally the patient. However, if a user signs in or out, gets disconnected, changes devices, etc, they are designated as a completely different number. In addition, interpreters, advocates, etc, may also be present. Please be sure to analyze participant data in these cases!
 
-## Static columns
+## Constant columns
 
 | Column Name        | Dtype    | Description                                                                                                                               |
 |--------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------|
@@ -52,7 +52,7 @@
 
 ## Numbered columns - Quality metrics
 
-- each metric listed below will have 12 columns of data for each user; 6 columns each for an input metric (quality of data sent to zoom from user) and 6 columns for output metric (quality of data received by user). 
+- each metric listed below will have 12 columns of data for each user; 6 columns each for an input metric (quality of data sent to zoom from user) and 6 columns for output metric (quality of data received by user). An example would be "audio_input_bitrate_min_0" to denote the audio bitrate input quality of user 0. 
 
 - Three columns for each are the minimum value for a session, the average value across the session, and the maximum value recorded for the session. 
 
