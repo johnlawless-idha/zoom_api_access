@@ -16,6 +16,10 @@
 | total_minutes      | int      | Number of minutes of zoom meeting (unclear how this differs from duration)                                                                |
 | participants_count | int      | Number of users who joined the zoom session (note: users who sign out and back in, switch devices, etc, are counted as a new participant) |
 | epic_csn           | string   | Unique Identifier: contact serial number for the virtual visit in EPIC                                                                    |
+|audio_issues | string(yes/no) | Engineered feature from data: yes if ANY audio metric's "poor_meeting" column in flagged (from below). Indicates that at least some minor audio quality issues were noticeable during zoom session | 
+|severe_audio_issues | string(yes/no) | Engineered feature from data: yes if multiple audio metrics are flagged. Indicates likelihood of quality issues that may have disrupted patient care |
+|video_issues | string(yes/no) | similar to audio issues |
+|severe_video_issues | string(yes/no) | similar to severe_audio_issues |
 
 ## Numbered columns - participants 
 - for each user in a zoom meeting, the following participant data is recorded, ending with _n to designate that it will be a numbered entry
