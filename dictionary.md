@@ -52,7 +52,7 @@
 
 ## Numbered columns - Quality metrics
 
-- each metric listed below will have 12 columns of data for each user; 6 columns each for an input metric (quality of data sent to zoom from user) and 6 columns for output metric (quality of data received by user). An example would be "audio_input_bitrate_min_0" to denote the audio bitrate input quality of user 0. 
+- each metric listed below will have 12 columns of data for each user; 6 columns each for an input metric (quality of data sent to zoom from user) and 6 columns for output metric (quality of data received by user). An example would be "audio_input_bitrate_min_0" to denote the minimum audio bitrate input quality of user 0. 
 
 - Three columns for each are the minimum value for a session, the average value across the session, and the maximum value recorded for the session. 
 
