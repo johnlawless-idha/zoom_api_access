@@ -49,8 +49,8 @@
 | recording_n             | Boolean  | True if user recorded all or part of the sesion                                                                                                     |
 | pc_name_n               | string   | Device name (if given)                                                                                                                              |
 | domain_n                | string   | Domain of zoom session (CHBOSTON.ORG if through internal domain, else user's domain)                                                                |
-| mac_addr_n              | string   | Uncertain: may be related to IP address                                                                                                             |
-| harddisk_id_n           | string   | Uncertain: likely able to be dropped                                                                                                                |
+| mac_addr_n              | string   | Unique identifier - Media Access Control (MAC) identifies network hardware                                                                                                             |
+| harddisk_id_n           | string   | Unique identifier for device id. Over 80% null values, can be dropped                                                                                                                |
 | version_n               | float    | Zoom version in use by user                                                                                                                         |
 | status_n                | string   | Status at connection - "in meeting" or "in waiting room" - likely able to be dropped as well                                                        |
 | role_n                  | string   | "Host" or "attendee" warning: not as accurate as using id. This should be dropped                                                                   |
