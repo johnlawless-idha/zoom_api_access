@@ -18,8 +18,12 @@
 | epic_csn           | string   | Unique Identifier: contact serial number for the virtual visit in EPIC                                                                    |
 |audio_issues | string(yes/no) | Engineered feature from data: yes if ANY audio metric's "poor_meeting" column in flagged (from below). Indicates that at least some minor audio quality issues were noticeable during zoom session | 
 |severe_audio_issues | string(yes/no) | Engineered feature from data: yes if multiple audio metrics are flagged. Indicates likelihood of quality issues that may have disrupted patient care |
+|host_audio_issues | string(yes/no) | Engineered feature: yes if reported audio issues are occuring from host side |
+|attendee_audio_issues | string(yes/no) | Engineered feature: yes if reported audio issues are occuring from attendee side |
 |video_issues | string(yes/no) | similar to audio issues |
 |severe_video_issues | string(yes/no) | similar to severe_audio_issues |
+|host_video_issues | string(yes/no) | Engineered feature: yes if reported video issues are occuring from host side |
+|attendee_video_issues | string(yes/no) | Engineered feature: yes if reported video issues are occuring from attendee side |
 | disconnections  | int | engineered feature: each user had a leave reason from the API - this feature tally's the number of events in a session in which "leave_reason" (now dropped) was "disconnected" |
 
 ## Numbered columns - participants 
