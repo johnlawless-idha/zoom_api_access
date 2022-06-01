@@ -52,7 +52,7 @@ def retrieve_s3_to_csv(bucket, key):
     
     return pd.read_csv(StringIO(csv_string))
 
-def upload_to_s3(data, filename, bucket = bucket, is_json = True):
+def upload_to_s3(data, filename, bucket = bucket, prefix = 'zoom_api/', is_json = True):
     '''
     This function takes data that has completed transformation and migrates it to s3. If a json file, it will migrate
     to the zoom_api directory to be retrieved by subsequent functions in data table transformations. If json = false,
@@ -68,16 +68,23 @@ def upload_to_s3(data, filename, bucket = bucket, is_json = True):
           is_json - bool which determines how the file will be saved (via json.dumps() or StringIO() for a csv)
     '''
     if is_json == True:
-        prefix = 'zoom_api/'
         return s3.put_object(Body = json.dumps(data),
                         Bucket = bucket, Key = f'{prefix}{filename}.json')['ResponseMetadata']['HTTPStatusCode']
 
     
-    #Change this when a new directory for backup is needed
     
-    prefix = 'zoom_api/'
     #Converts to string for upload, but maintains a csv format
     csv_buffer = StringIO()
     data.to_csv(csv_buffer)
     return s3.put_object(Body = csv_buffer.getvalue(), Bucket = bucket,
                          Key = f'{prefix}{filename}.csv')['ResponseMetadata']['HTTPStatusCode']
+
+def response_check(resp):
+    '''
+    Will talk with Chris about how to flesh out this function. All uploads create a response object. In short, if resp ==200,
+    do nothing. If it doesn't, raise an error and do another thing. Could also return a boolean if necessary.
+    '''
+    if resp == 200:
+        return
+    #This needs to have an exception raised and alert us in airflow. Just pass for now so I don't forget to do this later
+    pass

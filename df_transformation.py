@@ -6,6 +6,273 @@ pd.set_option('display.max_columns', 500)
 #Note: This script is ONLY necessary when preparing df for upload to microstrategy. There are no api calls or json files 
 # created in this script. 
 
+def generate_qos_from_m_id(m_id, durations_dict = None, is_test = is_test, users = None): 
+    client = authenticate(test = is_test)
+    '''
+    note: this should run only when making dataframe object, otherwise return qos_vals
+    '''
+    #Make sure to include the dictionary of meeting durations
+    q_stats = {'meeting_id':m_id}
+    if durations_dict != None:
+        q_stats['duration'] = durations_dict[m_id]
+    #This is now a dictionary of users, each pairing to a dictionary of metrics, each paired to a list of metrics
+    if not users:
+        users = get_qos_vals(m_id)
+    pass_cols = ['cpu_usage_zoom_min_cpu_usage', 'cpu_usage_zoom_avg_cpu_usage', 
+             'cpu_usage_zoom_max_cpu_usage', 'cpu_usage_system_max_cpu_usage']
+    
+    #nums = [ind.split('_')[1] for ind in users.keys()]
+    #This needs to now generate {x} in addition, for numbers of users 0 - x.
+    for qos_vals in users.keys():
+        num = qos_vals.split('_')[1]
+        for key in users[qos_vals].keys():
+            count = 0
+            if key in pass_cols:
+                 continue
+
+            if users[qos_vals][key] == []:
+                if 'resolution' in key:
+                    q_stats[f'{key}_{num}'] = np.NaN
+                else:
+                    q_stats[f'{key}_bad_mins_{num}'] = np.NaN
+                    q_stats[f'{key}_bad_mins_{num}'] = np.NaN
+                    q_stats[f'{key}_bad_mins_{num}'] = np.NaN  
+
+                continue
+
+            if 'resolution' in key:
+                q_stats[f'{key}_{num}'] = users[qos_vals][key][0]
+                continue
+
+            if '%' in users[qos_vals][key][0]:
+                #create a separate for comp and avg/max losses
+                #loss should be <= 2%, so unnaceptable may be over 4%
+                v_list = [float(q[:-1]) for q in users[qos_vals][key]]
+                tag = '%'
+
+                if '_loss' in key:
+                    for val in v_list:
+                        if val > 4.0:
+                            count += 1
+                    q_stats[f'{key}_min_{num}'] = np.min(v_list)
+                    q_stats[f'{key}_avg_performance_{num}'] = np.round(np.mean(v_list), 2)
+                    q_stats[f'{key}_max_{num}'] = np.max(v_list)
+                    q_stats[f'{key}_bad_mins_{num}'] = int(count)
+                    q_stats[f'{key}_bad_ratio_{num}'] = np.round((count / len(v_list)), 2)
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] > 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 1
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] <= 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 0
+
+                if 'cpu' in key and 'max' in key:
+                    if val > 70:
+                        count +=1
+                    q_stats[f'{key}_min_{num}'] = np.min(v_list)
+                    q_stats[f'{key}_avg_performance_{num}'] = np.round(np.mean(v_list), 2)
+                    q_stats[f'{key}_max_{num}'] = np.max(v_list)
+                    q_stats[f'{key}_bad_mins_{num}'] = int(count)
+                    q_stats[f'{key}_bad_ratio_{num}'] = np.round((count / len(v_list)), 2)
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] > 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 1
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] <= 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 0
+
+                if 'cpu' in key and 'max' not in key:
+                    for val in v_list:
+                        if val > 25:
+                            count +=1
+                    q_stats[f'{key}_min_{num}'] = np.min(v_list)
+                    q_stats[f'{key}_avg_performance_{num}'] = np.round(np.mean(v_list), 2)
+                    q_stats[f'{key}_max_{num}'] = np.max(v_list)
+                    q_stats[f'{key}_bad_mins_{num}'] = int(count)
+                    q_stats[f'{key}_bad_ratio_{num}'] = np.round((count / len(v_list)), 2)
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] > 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 1
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] <= 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 0
+
+                continue
+
+
+
+            else:
+                v_list = [int(q.split()[0]) for q in users[qos_vals][key]]
+                tag = users[qos_vals][key][0].split()[1]
+    #             print(f'{key}:{v_list}')
+
+                if 'audio' in key and 'bitrate' in key:
+                    #60-100 kbps is optimal, so under 40 could be "unacceptable"
+                    for val in v_list:
+                        if val < 40:
+                            count += 1
+                    q_stats[f'{key}_min_{num}'] = np.min(v_list)
+                    q_stats[f'{key}_avg_performance_{num}'] = np.round(np.mean(v_list), 2)
+                    q_stats[f'{key}_max_{num}'] = np.max(v_list)
+                    q_stats[f'{key}_bad_mins_{num}'] = int(count)
+                    q_stats[f'{key}_bad_ratio_{num}'] = np.round((count / len(v_list)), 2)
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] > 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 1
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] <= 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 0                
+
+
+                if 'video' in key and 'bitrate' in key:
+                    #600 is recommended, so under 400 is unacceptable
+                    for val in v_list:
+                        if val < 400:
+                            count += 1
+                    q_stats[f'{key}_min_{num}'] = np.min(v_list)
+                    q_stats[f'{key}_avg_performance_{num}'] = np.round(np.mean(v_list), 2)
+                    q_stats[f'{key}_max_{num}'] = np.max(v_list)
+                    q_stats[f'{key}_bad_mins_{num}'] = int(count)
+                    q_stats[f'{key}_bad_ratio_{num}'] = np.round((count / len(v_list)), 2)
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] > 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 1
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] <= 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 0                
+
+                if 'latency' in key:
+                    #latency should be under 150 ms for both audio and video
+                    for val in v_list:
+                        if val > 100:
+                            count += 1
+                    q_stats[f'{key}_min_{num}'] = np.min(v_list)
+                    q_stats[f'{key}_avg_performance_{num}'] = np.round(np.mean(v_list), 2)
+                    q_stats[f'{key}_max_{num}'] = np.max(v_list)
+                    q_stats[f'{key}_bad_mins_{num}'] = int(count)
+                    q_stats[f'{key}_bad_ratio_{num}'] = np.round((count / len(v_list)), 2)
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] > 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 1
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] <= 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 0                
+
+                if 'jitter' in key:
+                    #jitter should be under 40 ms for both audio and video
+                    for val in v_list:
+                        if val > 60:
+                            count += 1
+                    q_stats[f'{key}_min_{num}'] = np.min(v_list)
+                    q_stats[f'{key}_avg_performance_{num}'] = np.round(np.mean(v_list), 2)
+                    q_stats[f'{key}_max_{num}'] = np.max(v_list)
+                    q_stats[f'{key}_bad_mins_{num}'] = int(count)
+                    q_stats[f'{key}_bad_ratio_{num}'] = np.round((count / len(v_list)), 2)
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] >= 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 1
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] < 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 0                
+
+                if 'framerate' in key:
+                    #30 is max, less than 15 is not acceptable
+                    for val in v_list:
+                        if val < 18:
+                            count += 1
+                    q_stats[f'{key}_min_{num}'] = np.min(v_list)
+                    q_stats[f'{key}_avg_performance_{num}'] = np.round(np.mean(v_list), 2)
+                    q_stats[f'{key}_max_{num}'] = np.max(v_list)
+                    q_stats[f'{key}_bad_mins_{num}'] = int(count)
+                    q_stats[f'{key}_bad_ratio_{num}'] = np.round((count / len(v_list)), 2)
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] > 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 1
+
+                    if q_stats[f'{key}_bad_ratio_{num}'] <= 0.4:
+                        q_stats[f'{key}_poor_meeting_{num}'] = 0                
+                
+
+    return q_stats
+
+def qos_data(meeting_df, return_json = is_json, is_test = is_test, users = None):
+    m_ids = meeting_df.meeting_id.unique().tolist()
+    m_ids = [str(i) for i in m_ids]
+    
+    ret_vals = []
+
+    if return_json:
+        #Generate the json data and return a list of all meetings qos vals
+        for meeting in m_ids:
+            try:
+                qos_json = get_qos_vals(meeting)
+                if 'meeting_id' not in qos_json.keys():
+                    #I can't remember and will need to test if it already exists
+                    qos_json['meeting_id'] = meeting
+            except:
+                continue
+
+            ret_vals.append(qos_json)
+   
+
+        return ret_vals  
+    #If return_json = False, make the datafram object for microstrategy storage
+    for meeting in m_ids:
+
+        #Inexplicably, this call sometimes (rarely) fails.
+        #Re running the same m_id later often works at another time. No idea why. 
+        if not users:
+            try:
+                q_stats = generate_qos_from_m_id(meeting)
+                ret_vals.append(q_stats)
+            except:
+                continue
+        #When users is passed (raw metrics as a dictionary)
+        else:
+            try:
+                #This should pull just the json metrics of the meeting id matched to meeting
+                q_stats = generate_qos_from_m_id(meeting, users['meeting_id'] == meeting)
+                ret_vals.append(q_stats)
+            except:
+                #When the unknown error occurs, I am skipping for now. This needs to be cleaned
+                continue
+
+
+
+    m_df = pd.DataFrame(ret_vals)
+    m_df.meeting_id = m_df.meeting_id.apply(lambda x: int(x))
+    
+    ret_df = meeting_df.merge(m_df, how = 'left', on = 'meeting_id')
+    
+    return pd.DataFrame(ret_df)
+
+def convert_json_qos_to_df(json_users, meeting_df):
+    '''
+    Takes json data and preps for merging to primary df object, so as not to duplicate api calls. Used only when json data
+    has already been created and stored in raw format. Should move to the other function collection for transforming.
+    Steps: - query AWS for qos data that matches the user_ids in meeting df
+           - query the csv in untransformed data directory
+           - use this function to convert raw qos data and merge into untransformed df on meeting_id
+
+    '''
+    m_ids = meeting_df.meeting_id.unique().tolist()
+    m_ids = [str(i) for i in m_ids]
+    
+    ret_vals = []
+    for meeting in m_ids:
+        try:
+            #This SHOULD prevent the need to call the api again
+            q_stats = generate_qos_from_m_id(users = json_users['meeting_id'] == meeting)
+            ret_vals.append(q_stats)
+        except:
+            continue
+    m_df = pd.DataFrame(ret_vals)
+    m_df.meeting_id = m_df.meeting_id.apply(lambda x: int(x))
+    
+    ret_df = meeting_df.merge(m_df, how = 'left', on = 'meeting_id')
+    
+    return pd.DataFrame(ret_df)
+
 def is_disconnected(val):
     '''
     This is designed to be a functioned in df.apply() in function below. The "connection_failure" features return a string

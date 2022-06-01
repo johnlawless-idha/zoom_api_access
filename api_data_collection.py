@@ -1,6 +1,9 @@
 #Import functions from these files - ensure that path for import is maintined if these files are moved!
 import data_migration as dm
 import zoom_api_data_extration as ext
+import boto3
+import pandas as pd
+import json
 
 #This file illustrates the expected workflow for collecting data via the api and storing to AWS S3.
 #Refer to those files for any functions
