@@ -49,6 +49,14 @@ def authenticate(test = is_test):
 
 client = authenticate()
 
+def query_date():
+    '''
+    Placeholder for now - this function will query existing data, identify the correct start_time based on most recently
+    acquired data, then return the following day as start_time, and 3 days following that as the end_time for functions below.
+    Should return a tuple (start_time, end_time) so that they can be simply called as start_date, end_date = query_date()
+    '''
+    pass
+
 def generate_user_list(make_df = True):
     '''
     Returns data on all users in the zoom account. Due to number of users on account,
@@ -88,7 +96,7 @@ def user_list():
     return user_list
 
 def get_meetings(gen_list = True, user_df = None, end_date = datetime.date.today(), 
-                            start_date = None, is_test = is_test, return_json = is_json):
+                            start_date = None, is_test = is_test, return_json = False):
     '''
     This function cycles through each unique user_id from user_list(). For each id, it
     searches over a given date span and returns a dataframe object of each zoom meeting
@@ -101,7 +109,7 @@ def get_meetings(gen_list = True, user_df = None, end_date = datetime.date.today
     pass an existing user_df in if already created to save additional api calls.
 
     If return_json == True, returns the data as a list of json objects. If false, it returns
-    a dataframe object.
+    a dataframe object. Defaulting to false as this is all relational and other functions depend on dataframe changes
     '''
     
     #Build out the zoomclient object 
@@ -277,6 +285,16 @@ def get_participants(meeting_df = None, return_json = is_json, is_test = is_test
     #print(count / len(m_ids))
     return ret_df
 
+def convert_json_particpants_to_csv(data, base_df):
+    '''
+    Nothing special, simply makes the above json into a df by doing the same thing as the bottom. Will edit the above function
+    to simply flow into this later on
+    '''
+    ret_df = pd.DataFrame(data)
+    participant_df.meeting_id = participant_df.meeting_id.apply(lambda x: int(x))
+    return_df = base_df.merge(participant_df, on = 'meeting_id')
+    return return_df
+
 def get_qos_vals(m_id, is_test = is_test):#, df): 
     client = authenticate(test = is_test)
     #This will store each list of metrics, to be paired to users, and finally paired to meetings later
@@ -358,7 +376,7 @@ def get_qos_vals(m_id, is_test = is_test):#, df):
 
     return users
 
-def generate_qos_from_m_id(m_id, durations_dict = None, is_test = is_test): 
+def generate_qos_from_m_id(m_id, durations_dict = None, is_test = is_test, users = None): 
     client = authenticate(test = is_test)
     '''
     note: this should run only when making dataframe object, otherwise return qos_vals
@@ -368,8 +386,8 @@ def generate_qos_from_m_id(m_id, durations_dict = None, is_test = is_test):
     if durations_dict != None:
         q_stats['duration'] = durations_dict[m_id]
     #This is now a dictionary of users, each pairing to a dictionary of metrics, each paired to a list of metrics
-    users = get_qos_vals(m_id)
-#     print(qos_vals.keys())
+    if not users:
+        users = get_qos_vals(m_id)
     pass_cols = ['cpu_usage_zoom_min_cpu_usage', 'cpu_usage_zoom_avg_cpu_usage', 
              'cpu_usage_zoom_max_cpu_usage', 'cpu_usage_system_max_cpu_usage']
     
@@ -589,6 +607,33 @@ def qos_data(meeting_df, return_json = is_json, is_test = is_test):
     
     return pd.DataFrame(ret_df)
 
+def convert_json_qos_to_df(json_users, meeting_df):
+    '''
+    Takes json data and preps for merging to primary df object, so as not to duplicate api calls. Used only when json data
+    has already been created and stored in raw format. Should move to the other function collection for transforming.
+    Steps: - query AWS for qos data that matches the user_ids in meeting df
+           - query the csv in untransformed data directory
+           - use this function to convert raw qos data and merge into untransformed df on meeting_id
+
+    '''
+    m_ids = meeting_df.meeting_id.unique().tolist()
+    m_ids = [str(i) for i in m_ids]
+    
+    ret_vals = []
+    for meeting in m_ids:
+        try:
+            #This SHOULD prevent the need to call the api again
+            q_stats = generate_qos_from_m_id(users = json_users['meeting_id'] == meeting)
+            ret_vals.append(q_stats)
+        except:
+            continue
+    m_df = pd.DataFrame(ret_vals)
+    m_df.meeting_id = m_df.meeting_id.apply(lambda x: int(x))
+    
+    ret_df = meeting_df.merge(m_df, how = 'left', on = 'meeting_id')
+    
+    return pd.DataFrame(ret_df)
+        
 #Make two last functions. One calls these functions to create multiple json objects to save 
 # in an S3 bucket. The other creates the dataframe object to also be saved in S3 but to 
 #later incorporate into microstrategy

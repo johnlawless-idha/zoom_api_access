@@ -4,10 +4,14 @@ from io import StringIO
 import json
 import boto3
 
+######NOTES FOR FURTHER WORK: May need to generate a further algorithm to properly automate the naming/path designation 
+# of saved files once that stage has been reached 
+
+#Global definitions that will be used in all functions
 s3 = boto3.client('s3')
 bucket = 'lake-idha-analytics-nonprod'
 
-prefix = 'zoom_api'
+prefix = 'zoom_api/'
 
 def get_s3_keys(bucket = bucket, key = None):
     '''
@@ -15,7 +19,6 @@ def get_s3_keys(bucket = bucket, key = None):
     for import function to retrieve proper file. Enter desired file as a key and this function will return the 
     path to the file. If unknown, run without keys and it will display all keys in the zoom_api directory in S3.
     '''
-    prefix = 'zoom_api/'
     obj = s3.list_objects(Bucket=bucket, Prefix = prefix)
     key_list = [key['Key'] for key in obj['Contents']]
     
@@ -76,7 +79,5 @@ def upload_to_s3(data, filename, bucket = bucket, is_json = True):
     #Converts to string for upload, but maintains a csv format
     csv_buffer = StringIO()
     data.to_csv(csv_buffer)
-    # s3_resource = boto3.resource('s3')
-    # s3_resource.Object(bucket, f'{prefix}{filename}.csv').put(Body=csv_buffer.getvalue())
     return s3.put_object(Body = csv_buffer.getvalue(), Bucket = bucket,
                          Key = f'{prefix}{filename}.csv')['ResponseMetadata']['HTTPStatusCode']
