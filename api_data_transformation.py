@@ -20,4 +20,21 @@ untransformed_df = dm.retrieve_s3_to_csv(Bucket = bucket, Key = 'zoom_api/untran
 #Raw meeting metrics
 raw_qos_data = dm.retrieve_s3_to_json(Bucket = bucket, Key = 'zoom_api/raw_metrics/meeting_metrics_raw.json')
 #Created transformed metrics, all further transformations need to be done from here
-df_with_metrics = dt.qos_data(untransformed_df,users = raw_qos_data)
+df_with_metrics = dt.convert_json_qos_to_df(raw_qos_data, untransformed_df)
+
+#creates disconnect counts
+df_with_disconnects = dt.generate_disconnect_cols(df_with_metrics)
+
+#Creates "user_n is host" features
+df_with_host_ids = dt.host_locator(df_with_disconnects)
+
+#These generate specific features to identify meetings in which the host and/or attendee have audio or video issues
+df_with_located_issues = dt.generate_metric_issue_features(df_with_host_ids)
+#This generates the remaining engineered features, including general audio/severe audio and video/severe video issuess
+df_final = dt.generate_df_features(df_with_located_issues)
+
+#Finally, upload new df to s3 in prep for migrating to BCH 360. Will make a new subdirectory for this
+resp = dm.upload_to_s3(df_final, 'zoom_data_df_transformed', 'zoom_api/transformed_dataframes/', is_json = False)
+
+#Confirm upload was successful
+dm.response_check(resp)

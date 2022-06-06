@@ -378,6 +378,7 @@ def host_locator(df):
                     ind2 = ind
             test = all_cols[:ind1 + 1] + [all_cols[ind2]] + all_cols[ind1 +1:ind2] + all_cols[ind2 + 1:]
             all_cols = test
+        #reorganizes columns so that they can be found in the df
         if num == max(ints):
             for ind in range(len(all_cols)):
                 if all_cols[ind] == f'id_{num}':
@@ -541,7 +542,7 @@ def generate_df_features(in_df):
                    'attendee_video_issues'])
     #versions = [i for i in df.columns if 'version' in i]
 
-    the_rest = [i for i in df.columns if i not in display]# and i not in versions]
+    the_rest = [i for i in df.columns if i not in display]
     
     #df = df[display + versions + the_rest]
     df = df[display + the_rest]
