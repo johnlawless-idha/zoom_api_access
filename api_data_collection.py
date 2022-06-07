@@ -1,6 +1,6 @@
 #Import functions from these files - ensure that path for import is maintined if these files are moved!
 import data_migration as dm
-import zoom_api_data_extration as ext
+import zoom_api_data_extraction as ext
 import boto3
 import pandas as pd
 import json
