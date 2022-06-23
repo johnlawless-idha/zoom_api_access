@@ -4,16 +4,10 @@ import numpy as np
 import pandas as pd
 pd.set_option('display.max_columns', 500)
 import time
-from espressomaker import Espresso
 from zoomus import ZoomClient
 
 #Notes: -json objects should be able to have a common id of meeting_id for storage
     #   - date objects will be needed to pass into get_meetings start and end dates
-
-#Notes: lines 126 - 185, 
-# all need to be reviewed after testing response. Rather than
-#repetitive try/except uses, check response when authentication is expired, and use an if
-#statement instead to save repetetive scripts. 
 
 #Key and secret necessary for API access - omitted from git push
 #Credentials for test account
@@ -56,6 +50,18 @@ def query_date():
     Should return a tuple (start_time, end_time) so that they can be simply called as start_date, end_date = query_date()
     '''
     pass
+
+def test_authentication(api_response):
+    '''
+    Previous iteration of code captured expired authentication by a series of try/except lines, which was inefficient and
+    repetetive. This function simply tests if authentication has expired and returns a True/False boolean. Generally,
+    the response will be a list or dictionary object, but in cases of expiration, the response is a string.
+    '''
+    test_answer = False
+    if type(api_response) == str:
+        test_answer = True
+    
+    return test_answer
 
 def generate_user_list(make_df = True):
     '''
@@ -117,19 +123,16 @@ def get_meetings(gen_list = True, user_df = None, end_date = datetime.date.today
     count = 0
     fails = []
     
-
     if gen_list:
         all_user_ids = user_list()
     else:
-        all_user_ids = user_df.id.unique().tolist()
-    
+        all_user_ids = user_df.id.unique().tolist()   
     
     if start_date == None:
         delta = datetime.timedelta(days = 1)
         start_date = end_date - delta
     #This will house all users' meeting lists as dictionary objects
-    meeting_list = []
-    
+    meeting_list = []   
 
     for user in all_user_ids:
         try:
@@ -137,62 +140,46 @@ def get_meetings(gen_list = True, user_df = None, end_date = datetime.date.today
                 user_id = user, start_time = start_date, 
                 end_time = end_date).content)
 
+            #This code block checks if authentication has expired before going further - will repeat often in the code
+            if not test_authentication(data):
+                client = authenticate(test = is_test)
+                
+                data = json.loads(client.report.get_user_report(
+                    user_id = user, start_time = start_date, 
+                    end_time = end_date).content)
+
             temp = data['meetings']
             while True:
+                #Make sure to collect all data available by cycling through all "pages" of responses
                 if 'next_page_token' not in data.keys():
                     break
                 if data['next_page_token'] == '':
                     break
-                try:
-                    next_page = data['next_page_token']
+
+                next_page = data['next_page_token']
+                data = json.loads(client.report.get_user_report(
+                    user_id = user, start_time =start_date, 
+                    end_time = end_date, next_page_token = next_page).content)
+
+                if not test_authentication(data):
+                    client = authenticate(test = is_test)
+
                     data = json.loads(client.report.get_user_report(
                         user_id = user, start_time =start_date, 
                         end_time = end_date, next_page_token = next_page).content)
-                    temp.extend(data['meetings'])
-                    time.sleep(0.3)
-                except KeyError:
-            #This most likely means that the client access expired and needs to be refreshed
 
-                    client = authenticate(test = is_test)
-
+                temp.extend(data['meetings'])
+                time.sleep(0.3)
             meeting_list.append(temp)
             time.sleep(0.3)
+
         except KeyError:
-            #This most likely means that the client access expired and needs to be refreshed
-
-            client = authenticate(test = is_test)
-
-            try:
-                data = json.loads(client.report.get_user_report(
-                    user_id = user, start_time = start_date, 
-                    end_time = end_date).content)
-                temp = data['meetings']
-                while True:
-                    if 'next_page_token' not in data.keys():
-                        break
-                    if data['next_page_token'] == '':
-                        break
-                    try:
-                        next_page = data['next_page_token']
-                        data = json.loads(client.report.get_user_report(
-                            user_id = user, start_time = start_date, 
-                            end_time = end_date, next_page_token = next_page).content)
-                        temp.extend(data['meetings'])
-                        time.sleep(0.3)
-                    except KeyError:
-                        break
-
-                    meeting_list.append(temp)
-                    time.sleep(0.3)
-
-            except KeyError:
-                #A keyerror means that the given user has no meetings 
-                # available in their data for some reason
-                count += 1
-                fails.append(user)
-                #I want to know how many fails occurred 
-                continue
-
+            #A keyerror means that the given user has no meetings 
+            # available in their data for some reason - authentication has been covered in the code block
+            count += 1
+            fails.append(user)
+            #I want to know how many fails occurred 
+            continue
     
     ret_list = []
     for i in meeting_list:
@@ -241,26 +228,25 @@ def get_participants(meeting_df = None, return_json = is_json, is_test = is_test
     for m_id in m_ids:
         #Create the meeting_id key so that the data can be located if desired
         meet_dict = {'meeting_id':m_id}
-        try:
-            p_list = json.loads(client.metric.list_participants(meeting_id = str(m_id), 
-                                                type = 'past').content)['participants']
-        except KeyError:
-            time.sleep(0.3)
-            #Refresh authorization
+
+        p_list = json.loads(client.metric.list_participants(meeting_id = str(m_id), 
+                                                type = 'past').content)
+        if not test_authentication(p_list):
             client = authenticate(test = is_test)
-            
-            try:
-                p_list = json.loads(client.metric.list_participants(meeting_id = str(m_id), 
-                                            type = 'past').content)['participants']
-            except KeyError:
-                meet_data.append(meet_dict)
-                count += 1
-                continue
-        #Define p_list and p_qos once outside per m_id, to reduce server calls
+
+            p_list = json.loads(client.metric.list_participants(meeting_id = str(m_id), 
+                                                type = 'past').content)
+        try:
+            p_list = p_list['participants']
+
+        except KeyError:
+            #This means that the meeting data is empty - just append the empty data and move on
+            meet_data.append(meet_dict)
+            count += 1
+            continue
 
         for ind in range(len(p_list)):
-            #this internal loop will grab all participants in that m_id
-            #meet_dict[f'participant_{ind + 1}'] = p_list[ind]['user_name']
+            #re-assembles the data into a relational data table
             for key in p_list[ind].keys():
                 meet_dict[f'{key}_{ind}'] = p_list[ind][key]
 
@@ -314,8 +300,7 @@ def get_qos_vals(m_id, is_test = is_test):#, df):
     except:
         print(f'{m_id} throws an error')
         return
-    
-    
+      
     try:
         next_one = json.loads(
                 client.metric.list_participants_qos(meeting_id = str(m_id), 
@@ -342,9 +327,6 @@ def get_qos_vals(m_id, is_test = is_test):#, df):
     for user in range(len(all_participants)):
         users[f'user_{user}'] = all_participants[user]
         
-    
-    #To ask Chris: I toyed with making this a new function, but it seems this is still
-    #objectively better for readability regardless in the format this transforms to
     for p_qos in users.keys():
         #This will assemble all minutes, then replace the current users data
         qos_vals = {}
@@ -468,8 +450,6 @@ def generate_qos_from_m_id(m_id, durations_dict = None, is_test = is_test, users
                         q_stats[f'{key}_poor_meeting_{num}'] = 0
 
                 continue
-
-
 
             else:
                 v_list = [int(q.split()[0]) for q in users[qos_vals][key]]
@@ -597,8 +577,6 @@ def qos_data(meeting_df, return_json = is_json, is_test = is_test):
         except:
             #When the unknown error occurs, I am skipping for now. This needs to be cleaned
             continue
-
-
 
     m_df = pd.DataFrame(ret_vals)
     m_df.meeting_id = m_df.meeting_id.apply(lambda x: int(x))
