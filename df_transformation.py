@@ -6,7 +6,7 @@ pd.set_option('display.max_columns', 500)
 #Note: This script is ONLY necessary when preparing df for upload to microstrategy. There are no api calls or json files 
 # created in this script. 
 
-def generate_qos_from_m_id(m_id, durations_dict = None, is_test = is_test, users = None): 
+def generate_qos_from_m_id(m_id, durations_dict = None, is_test = is_test, users = None, **kwargs): 
     client = authenticate(test = is_test)
     '''
     note: this should run only when making dataframe object, otherwise return qos_vals
