@@ -1,17 +1,17 @@
 import datetime
-from multiprocessing import Value
 import airflow
 from airflow.models import Variable as var
 from airflow.models.xcom import XCom
 from airflow.utils import context
 from airflow import DAG
-from botocore.retries import bucket
-# import sys
-# sys.path.append('../functions/')
-from botocore.vendored.six import python_2_unicode_compatible
-import data_migration as dm
 from airflow.operators.python import PythonOperator
+import sys
+sys.path.append('../functions/')
+import data_migration as dm
 
+#put default args here
+
+#This will later include a task to migrate to microstrategy as well
 with DAG(
     "push_raw_to_s3",
     start_date = datetime(2022,7,7),
@@ -25,7 +25,7 @@ with DAG(
         op_kwargs = {
             'data':df,
             'filename':'zoom_data_df_transformed',
-            'bucket' = {{var.Value.bucket}},
+            'bucket' : {{var.Value.bucket}},
             'prefix': 'zoom_api/transformed_dataframes/',
             'is_json': False
         }

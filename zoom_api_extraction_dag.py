@@ -4,15 +4,16 @@ from airflow.models import Variable as var
 from airflow.models.xcom import XCom
 from airflow.utils import context
 from airflow import DAG
-# import sys
-# sys.path.append('../functions/')
-from botocore.vendored.six import python_2_unicode_compatible
+from airflow.operators.python import PythonOperator
+import sys
+sys.path.append('../functions/')
+#Can delete data_migration later, if push to s3 is done in a separate dag
 import data_migration as dm
 import zoom_api_data_extraction as ext
-from airflow.operators.python import PythonOperator
+
 
 #Note: is_test can be a defined variable within airflow, set to True or False without needing to alter existing script.
-#Make sure to define it as a variable within airflow!
+#Make sure to define it as a variable within airflow! Also, include "bucket" for later pushes to S3 (or retrieve from secrets)
 
 #Put default args here
 
@@ -51,6 +52,8 @@ with DAG(
 
     mid_merge = PythonOperator(
         task_id = 'df_mid_merge',
+        #This might return a dictionary object, in which case you can call context once with both ids, then reference
+        #those specific keys in op_kwargs (value[key1])
         value1 = context['task_instance'].xcom_pull(task_ids='create_meeting_df'),
         value2 = context['task_instance'].xcom_pull(task_ids='get_meeting_participants'),
         python_callable= ext.convert_json_particpants_to_csv(),
@@ -62,7 +65,6 @@ with DAG(
 
     get_raw_qos = PythonOperator(
         task_id = 'get_raw_qos_data',
-        #value = task_instance.xcom_pull(task_ids = 'create_meeting_df'),
         value = context['task_instance'].xcom_pull(task_ids='create_meeting_df'),
         python_callable = ext.qos_data(), 
         op_kwargs = {
@@ -75,5 +77,6 @@ with DAG(
     create_meetings >> get_participants >> mid_merge >> get_raw_qos
 
     # https://airflow.apache.org/docs/apache-airflow/stable/concepts/xcoms.html
+    # https://airflow.apache.org/docs/apache-airflow/1.10.4/_api/airflow/operators/python_operator/index.html
     #value = task_instance.xcom_pull(task_ids='pushing_task') change id to 'create_meeting_df' for example, as that is the id
     #You need to push the result of one callable into another for this to function properly

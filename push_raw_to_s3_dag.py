@@ -5,11 +5,11 @@ from airflow.models import Variable as var
 from airflow.models.xcom import XCom
 from airflow.utils import context
 from airflow import DAG
-from botocore.retries import bucket
-# import sys
-# sys.path.append('../functions/')
-import data_migration as dm
 from airflow.operators.python import PythonOperator
+from botocore.retries import bucket
+import sys
+sys.path.append('../functions/')
+import data_migration as dm
 
 #put default args here
 
@@ -21,13 +21,12 @@ with DAG(
 ) as dag:
     untransformed_df = PythonOperator(
         task_id = 'untransformed_df',
-        #value = task_instance.xcom_pull(dag_id = 'zoom_api_extraction', task_id = 'create_meeting_df'),
         value = context['task_instance'].xcom_pull(task_ids='df_mid_merge', dag_id = 'zoom_api_extraction'),
         python_callable= dm.upload_to_s3(),
         op_kwargs= {
             'data': value,
             'filename': 'untransformed_df',
-            # Make a var bucket perhaps, or figure out how to import from secrets
+            # Make a var bucket perhaps, if not, later you can import from secrets
             'bucket': {{var.Value.bucket}},
             'prefix': 'zoom_api/untransformed_dataframes/',
             'is_json': False
@@ -40,7 +39,6 @@ with DAG(
         op_kwargs= {
             'data': value,
             'filename': 'meeting_participants_raw',
-            # Make a var bucket perhaps, or figure out how to import from secrets
             'bucket': {{var.Value.bucket}},
             'prefix': 'zoom_api/participants_json/',
             'is_json': True
@@ -53,7 +51,6 @@ with DAG(
         op_kwargs= {
             'data': value,
             'filename': 'meeting_metrics_raw',
-            # Make a var bucket perhaps, or figure out how to import from secrets
             'bucket': {{var.Value.bucket}},
             'prefix': 'zoom_api/raw_metrics/',
             'is_json': True

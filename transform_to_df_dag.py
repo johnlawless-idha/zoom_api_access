@@ -6,12 +6,11 @@ from airflow.models.xcom import XCom
 from airflow.utils import context
 from airflow import DAG
 from botocore.retries import bucket
-# import sys
-# sys.path.append('../functions/')
-from botocore.vendored.six import python_2_unicode_compatible
+from airflow.operators.python import PythonOperator
+import sys
+sys.path.append('../functions/')
 import data_migration as dm
 import df_transformation as dt
-from airflow.operators.python import PythonOperator
 
 #put default args here
 
