@@ -4,6 +4,7 @@
  - it is most likley fine to keep only users 0-2, and remove all other features of later users to reduce data complexity
  - generally it is likely safe to assume that user 0 is the host, and other users are not in data reports
  - be aware that a significantly larger amount of "unknown" device counts exist for users 1 and 2. Explanations are found below. 
+ - similarly, a larger proportion of NaN values appear for version display for users 1 and 2
 
 ### Contents of report:
 1. User metadata
@@ -52,3 +53,17 @@ and user 2:
 The larger number of unknown device counts is not represented in user 0. After investigating, [this zoom forum](https://devforum.zoom.us/t/device-type-of-unknown/70849/4) resolved this as a known issue in Zoom. Essentially, if a user who joins a zoom meeting does not sign in, but rather simply enters as a "guest," then zoom will not collect or store the user metadata, and therefore the device will be registered as "unknown." This makes sense, as we would expect the host, or the BCH care team, to be signing in on a much higher level to their accounts when initiating virtual care with their patients, while the patients themselves have no obligation or necessity to do so. 
 
 It should therefore be interpreted that unknown device users simply do not have or did not utilize a zoom account sign in, and if you wish to get a ratio or count of all devices, these should most likely be excluded. However, if there is an interest in encouraging patients to sign in to accounts, this could be a useful metric for following the trend of patients who sign in vs those who don't. 
+
+4. Zoom version analysis
+- Note: Zoom versions as reported in the api often offer results specific to a level we do not necessarily need (or likley would understand) - such as 5.7.7.1105. I am keeping therefore only the first decimal, and would represent this as version 5.7 (this is also what I did in microstrategy in my preliminary analysis). These are presented as proportions of all users.
+
+#### User 0
+![vers](images/version_0.png)
+
+#### User 1
+![verz](images/version_1.png)
+
+#### User 2
+![versa](images/version_2.png)
+
+Note, again, that there are high proportions of null values for users 1 and 2. This is, again, due to the reasons above, as this is metadata collected from users who signed in with a zoom account. There remains enough data to analyze user versions, however the same considerations as above should be applied when seeking to analyze the data. 
